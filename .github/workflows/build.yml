@@ -20,9 +20,14 @@ jobs:
       CCACHE_BASEDIR: ${{ github.workspace }}
     steps:
       - name: Bootstrap git (checkout needs it, debian image lacks it)
-        run: apt-get update -q && apt-get install -y -q git ca-certificates
+        run: |
+          apt-get update -q && apt-get install -y -q git ca-certificates
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - uses: actions/checkout@v4
+
+      - name: Re-assert safe.directory (container user owns checkout)
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Install Wine build dependencies
         run: |
