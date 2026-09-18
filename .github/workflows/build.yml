@@ -20,45 +20,93 @@ jobs:
       - name: Install Wine build dependencies
         run: |
           sudo apt-get update -q
+          sudo dpkg --add-architecture i386
+          sudo apt-get update -q
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
-            $deb \
-            (for \
-            *.deb; \
-            +x \
-            -L \
-            -a \
-            -m \
-            -o \
-            -p \
-            -rf \
-            -s \
-            -x \
-            ;; \
-            apt-get \
-            arm64) \
-            chmod \
-            clean \
-            cp \
+            autoconf \
+            bison \
+            ca-certificates \
+            ccache \
+            clang \
             curl \
-            deb \
-            do \
-            done) \
-            download \
-            dpkg-deb \
-            esac \
-            g++-mingw-w64-i686 \
-            g++-mingw-w64-x86-64 \
+            flex \
+            fonts-liberation2 \
+            fonts-noto-cjk \
+            fonts-noto-core \
+            gettext \
+            git \
+            gstreamer1.0-libav \
+            gstreamer1.0-plugins-bad \
+            gstreamer1.0-plugins-base \
+            gstreamer1.0-plugins-good \
+            gstreamer1.0-plugins-ugly \
+            jq \
+            libasound2-dev \
+            libasound2-plugins \
+            libavcodec-dev \
+            libavformat-dev \
+            libavutil-dev \
+            libcapi20-dev \
+            libcups2-dev \
+            libdbus-1-dev \
+            libfontconfig-dev \
+            libfreetype-dev \
+            libgl1-mesa-dev \
+            libgnutls28-dev \
+            libgphoto2-dev \
+            libgstreamer-plugins-base1.0-dev \
+            libgstreamer1.0-dev \
+            libice-dev \
+            libkrb5-dev \
+            libpcap-dev \
+            libpcsclite-dev \
+            libpulse-dev \
+            libsane-dev \
+            libsdl2-dev \
+            libswresample-dev \
+            libswscale-dev \
+            libudev-dev \
+            libusb-1.0-0-dev \
+            libv4l-dev \
+            libva-dev \
+            libvulkan-dev \
+            libwayland-dev \
+            libx11-dev \
+            libxcomposite-dev \
+            libxcursor-dev \
+            libxext-dev \
+            libxi-dev \
+            libxinerama-dev \
+            libxkbcommon-dev \
+            libxkbregistry-dev \
+            libxrandr-dev \
+            libxrender-dev \
+            libxxf86vm-dev \
+            linux-libc-dev \
+            lld \
+            llvm \
+            mesa-vulkan-drivers \
+            nasm \
+            netbase \
+            ocl-icd-opencl-dev \
+            perl \
+            samba-dev \
+            unixodbc-dev \
+            unzip
+
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
             gcc \
             gcc-mingw-w64-i686 \
             gcc-mingw-w64-x86-64 \
+            g++-mingw-w64-i686 \
+            g++-mingw-w64-x86-64 \
             gcc-multilib \
-            gitlab \
+            libunwind-dev \
             gstreamer1.0-libav:i386 \
             gstreamer1.0-plugins-bad:i386 \
             gstreamer1.0-plugins-base:i386 \
             gstreamer1.0-plugins-good:i386 \
             gstreamer1.0-plugins-ugly:i386 \
-            in \
             libasound2-dev:i386 \
             libasound2-plugins:i386 \
             libavcodec-dev:i386 \
@@ -72,8 +120,6 @@ jobs:
             libgl1-mesa-dev:i386 \
             libgnutls28-dev:i386 \
             libgphoto2-dev:i386 \
-            libgstreamer-plugins-base1.0-dev:i386 \
-            libgstreamer1.0-dev:i386 \
             libice-dev:i386 \
             libkrb5-dev:i386 \
             liborc-0.4-dev:i386 \
@@ -85,7 +131,6 @@ jobs:
             libswresample-dev:i386 \
             libswscale-dev:i386 \
             libudev-dev:i386 \
-            libunwind-dev \
             libusb-1.0-0-dev:i386 \
             libv4l-dev:i386 \
             libva-dev:i386 \
@@ -104,16 +149,20 @@ jobs:
             libxxf86vm-dev:i386 \
             linux-libc-dev:i386 \
             mesa-vulkan-drivers:i386 \
-            mkdir \
-            mv \
             ocl-icd-opencl-dev:i386 \
-            rm \
             samba-dev:i386 \
-            tar \
-            unixodbc-dev:i386 \
-            useradd \
-            xJ \
-            |
+            unixodbc-dev:i386
+
+          # gstreamer i386 dev packages conflict with the amd64 ones - extract manually
+          mkdir -p /dpkg && cd /dpkg
+          apt-get download libgstreamer-plugins-base1.0-dev:i386 libgstreamer1.0-dev:i386
+          for deb in *.deb; do sudo dpkg-deb -x "$deb" /dpkg; done
+          sudo cp -a /dpkg/usr/lib/i386-linux-gnu/. /usr/lib/
+          cd "$GITHUB_WORKSPACE" && sudo rm -rf /dpkg
+
+          # OSS soundcard.h header (wine build needs it)
+          sudo mkdir -p /usr/lib/oss/include/sys
+          sudo curl -s -o /usr/lib/oss/include/sys/soundcard.h https://salsa.debian.org/debian/oss4/-/raw/debian/4.2-build2020-6/include/soundcard.h
 
       - uses: actions/cache@v4
         with:
