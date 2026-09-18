@@ -10,19 +10,25 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: debian:trixie
+      options: --user root
     env:
+      DEBIAN_FRONTEND: noninteractive
       CCACHE_DIR: ${{ github.workspace }}/ccache
       CCACHE_COMPILERCHECK: content
       CCACHE_BASEDIR: ${{ github.workspace }}
     steps:
+      - name: Bootstrap git (checkout needs it, debian image lacks it)
+        run: apt-get update -q && apt-get install -y -q git ca-certificates
+
       - uses: actions/checkout@v4
 
       - name: Install Wine build dependencies
         run: |
-          sudo apt-get update -q
-          sudo dpkg --add-architecture i386
-          sudo apt-get update -q
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update -q
+          apt-get install -y -q --no-install-recommends \
             autoconf \
             bison \
             ca-certificates \
@@ -94,7 +100,9 @@ jobs:
             unixodbc-dev \
             unzip
 
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
+          dpkg --add-architecture i386
+          apt-get update -q
+          apt-get install -y -q --no-install-recommends \
             gcc \
             gcc-mingw-w64-i686 \
             gcc-mingw-w64-x86-64 \
@@ -153,16 +161,16 @@ jobs:
             samba-dev:i386 \
             unixodbc-dev:i386
 
-          # gstreamer i386 dev packages conflict with the amd64 ones - extract manually
+          # gstreamer i386 dev packages conflict with amd64 versions - extract manually (same as Wine's image)
           mkdir -p /dpkg && cd /dpkg
           apt-get download libgstreamer-plugins-base1.0-dev:i386 libgstreamer1.0-dev:i386
-          for deb in *.deb; do sudo dpkg-deb -x "$deb" /dpkg; done
-          sudo cp -a /dpkg/usr/lib/i386-linux-gnu/. /usr/lib/
-          cd "$GITHUB_WORKSPACE" && sudo rm -rf /dpkg
+          for deb in *.deb; do dpkg-deb -x "$deb" /dpkg; done
+          cp -a /dpkg/usr/lib/i386-linux-gnu/. /usr/lib/
+          cd "$GITHUB_WORKSPACE" && rm -rf /dpkg
 
-          # OSS soundcard.h header (wine build needs it)
-          sudo mkdir -p /usr/lib/oss/include/sys
-          sudo curl -s -o /usr/lib/oss/include/sys/soundcard.h https://salsa.debian.org/debian/oss4/-/raw/debian/4.2-build2020-6/include/soundcard.h
+          # OSS soundcard.h header
+          mkdir -p /usr/lib/oss/include/sys
+          curl -s -o /usr/lib/oss/include/sys/soundcard.h https://salsa.debian.org/debian/oss4/-/raw/debian/4.2-build2020-6/include/soundcard.h
 
       - uses: actions/cache@v4
         with:
