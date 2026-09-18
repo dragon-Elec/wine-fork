@@ -1,0 +1,74 @@
+name: wine-build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths-ignore:
+      - '**.md'
+      - '**.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: registry.gitlab.winehq.org/wine/wine:debian-trixie
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/ccache
+      CCACHE_COMPILERCHECK: content
+      CCACHE_BASEDIR: ${{ github.workspace }}
+    steps:
+      - name: git safe.directory
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: ccache
+          key: ccache-wine-${{ github.run_id }}
+          restore-keys: ccache-wine-
+
+      - name: Generate sources
+        run: |
+          set -Eeuxo pipefail
+          export PATH="/usr/lib/ccache:$PATH"
+          ./tools/make_requests
+          ./tools/make_specfiles
+          ./tools/make_makefiles
+          autoreconf -f
+
+      - name: Build 64-bit
+        run: |
+          set -Eeuxo pipefail
+          export PATH="/usr/lib/ccache:$PATH"
+          mkdir -p build64 && cd build64
+          ../configure -q -C --enable-win64 --with-mingw
+          make -s -j$(nproc)
+
+      - name: Build 32-bit
+        run: |
+          set -Eeuxo pipefail
+          export PATH="/usr/lib/ccache:$PATH"
+          mkdir -p build32 && cd build32
+          ../configure -q -C --with-mingw
+          make -s -j$(nproc)
+
+      - name: Stage install tree
+        run: |
+          set -Eeuxo pipefail
+          make -s -C build32 install DESTDIR=$GITHUB_WORKSPACE/inst
+          make -s -C build64 install DESTDIR=$GITHUB_WORKSPACE/inst
+          du -sh inst/
+
+      - name: Sanity check binaries
+        run: |
+          file inst/usr/local/lib/wine/x86_64-unix/ntdll.so 2>/dev/null || true
+          file inst/usr/local/lib/wine/i386-unix/ntdll.so 2>/dev/null || true
+          ls inst/usr/local/bin/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wine-build-${{ github.run_number }}
+          path: inst/
+          compression-level: 6
+          retention-days: 30
