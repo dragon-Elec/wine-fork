@@ -924,6 +924,28 @@ NTSTATUS WINAPI wow64_NtWow64WriteVirtualMemory64( UINT *args )
 
 
 /**********************************************************************
+ *           wow64_NtWow64QueryVirtualMemory64
+ */
+NTSTATUS WINAPI wow64_NtWow64QueryVirtualMemory64( UINT *args )
+{
+    HANDLE process = get_handle( &args );
+    void *addr = (void *)(ULONG_PTR)get_ulong64( &args );
+    MEMORY_INFORMATION_CLASS class = get_ulong( &args );
+    void *ptr = get_ptr( &args );
+    SIZE_T len = get_ulong64( &args );
+    SIZE_T *retlen = get_ptr( &args );
+
+    switch (class)
+    {
+    case MemoryBasicInformation:  /* MEMORY_BASIC_INFORMATION64 */
+        return NtQueryVirtualMemory( process, addr, class, ptr, len, retlen );
+    default:
+        return STATUS_NOT_IMPLEMENTED;
+    }
+}
+
+
+/**********************************************************************
  *           wow64_NtWriteVirtualMemory
  */
 NTSTATUS WINAPI wow64_NtWriteVirtualMemory( UINT *args )

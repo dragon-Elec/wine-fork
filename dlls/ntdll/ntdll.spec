@@ -463,6 +463,7 @@
 @ stdcall -syscall -arch=win32 NtWow64GetNativeSystemInformation(long ptr long ptr)
 @ stdcall -syscall -arch=win32 NtWow64IsProcessorFeaturePresent(long)
 @ stdcall -syscall -arch=win32 NtWow64QueryInformationProcess64(long long ptr long ptr)
+@ stdcall -syscall -arch=win32 NtWow64QueryVirtualMemory64(long long long long ptr long long ptr)
 @ stdcall -syscall -arch=win32 NtWow64ReadVirtualMemory64(long long long ptr long long ptr)
 @ stdcall -syscall -arch=win32 NtWow64WriteVirtualMemory64(long long long ptr long long ptr)
 @ stdcall -syscall=0x0008 NtWriteFile(long long ptr ptr ptr ptr long ptr ptr)
@@ -1544,6 +1545,7 @@
 @ stdcall -private -arch=win32 ZwWow64GetNativeSystemInformation(long ptr long ptr) NtWow64GetNativeSystemInformation
 @ stdcall -private -arch=win32 ZwWow64IsProcessorFeaturePresent(long) NtWow64IsProcessorFeaturePresent
 @ stdcall -private -arch=win32 ZwWow64QueryInformationProcess64(long long ptr long ptr) NtWow64QueryInformationProcess64
+@ stdcall -private -arch=win32 ZwWow64QueryVirtualMemory64(long long long long ptr long long ptr) NtWow64QueryVirtualMemory64
 @ stdcall -private -arch=win32 ZwWow64ReadVirtualMemory64(long long long ptr long long ptr) NtWow64ReadVirtualMemory64
 @ stdcall -private -arch=win32 ZwWow64WriteVirtualMemory64(long long long ptr long long ptr) NtWow64WriteVirtualMemory64
 @ stdcall -private ZwWriteFile(long long ptr ptr ptr ptr long ptr ptr) NtWriteFile

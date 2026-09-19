@@ -7318,4 +7318,76 @@ NTSTATUS WINAPI NtWow64IsProcessorFeaturePresent( UINT feature )
     return feature < PROCESSOR_FEATURE_MAX && user_shared_data->ProcessorFeatures[feature];
 }
 
+
+/***********************************************************************
+ *             NtWow64QueryVirtualMemory64   (NTDLL.@)
+ *             ZwWow64QueryVirtualMemory64   (NTDLL.@)
+ */
+NTSTATUS WINAPI NtWow64QueryVirtualMemory64( HANDLE process, ULONG64 addr,
+                                             MEMORY_INFORMATION_CLASS info_class,
+                                             void *buffer, ULONG64 len, ULONG64 *ret_len )
+{
+    unsigned int status;
+
+    TRACE( "%p %s %u %p %s\n", process, wine_dbgstr_longlong(addr), info_class,
+           buffer, wine_dbgstr_longlong(len) );
+
+    if (info_class != MemoryBasicInformation) return STATUS_NOT_IMPLEMENTED;
+    if (len < sizeof(MEMORY_BASIC_INFORMATION64)) return STATUS_INFO_LENGTH_MISMATCH;
+
+    if (process != NtCurrentProcess())
+    {
+        union apc_call call;
+        union apc_result result;
+        MEMORY_BASIC_INFORMATION64 *info = buffer;
+
+        memset( &call, 0, sizeof(call) );
+        call.virtual_query.type = APC_VIRTUAL_QUERY;
+        call.virtual_query.addr = addr;
+        status = server_queue_process_apc( process, &call, &result );
+        if (status != STATUS_SUCCESS) return status;
+
+        if (result.virtual_query.status == STATUS_SUCCESS)
+        {
+            info->BaseAddress       = result.virtual_query.base;
+            info->AllocationBase    = result.virtual_query.alloc_base;
+            info->AllocationProtect = result.virtual_query.alloc_prot;
+            info->RegionSize        = result.virtual_query.size;
+            info->State             = (DWORD)result.virtual_query.state << 12;
+            info->Protect           = result.virtual_query.prot;
+            info->Type              = (DWORD)result.virtual_query.alloc_type << 16;
+            info->__alignment1      = 0;
+            info->__alignment2      = 0;
+            if (ret_len) *ret_len = sizeof(*info);
+        }
+        else if (ret_len) *ret_len = 0;
+        return result.virtual_query.status;
+    }
+
+    /* a 32-bit process has no address space above 4GB */
+    if (addr > 0xffffffff) return STATUS_INVALID_PARAMETER;
+
+    {
+        MEMORY_BASIC_INFORMATION info;
+        MEMORY_BASIC_INFORMATION64 *info64 = buffer;
+        SIZE_T res_len = 0;
+
+        status = get_basic_memory_info( process, (const void *)(ULONG_PTR)addr,
+                                        &info, sizeof(info), &res_len );
+        if (status) return status;
+
+        info64->BaseAddress       = (ULONG64)(ULONG_PTR)info.BaseAddress;
+        info64->AllocationBase    = (ULONG64)(ULONG_PTR)info.AllocationBase;
+        info64->AllocationProtect = info.AllocationProtect;
+        info64->RegionSize        = info.RegionSize;
+        info64->State             = info.State;
+        info64->Protect           = info.Protect;
+        info64->Type              = info.Type;
+        info64->__alignment1      = 0;
+        info64->__alignment2      = 0;
+        if (ret_len) *ret_len = sizeof(*info64);
+        return STATUS_SUCCESS;
+    }
+}
+
 #endif  /* _WIN64 */

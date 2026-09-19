@@ -270,7 +270,8 @@
     SYSCALL_ENTRY( 0x010a, NtWow64IsProcessorFeaturePresent, 4 ) \
     SYSCALL_ENTRY( 0x010b, NtWow64QueryInformationProcess64, 20 ) \
     SYSCALL_ENTRY( 0x010c, NtWow64ReadVirtualMemory64, 28 ) \
-    SYSCALL_ENTRY( 0x010d, NtWow64WriteVirtualMemory64, 28 )
+    SYSCALL_ENTRY( 0x010d, NtWow64WriteVirtualMemory64, 28 ) \
+    SYSCALL_ENTRY( 0x010e, NtWow64QueryVirtualMemory64, 32 )
 #ifdef _WIN64
 #define ALL_SYSCALLS \
     SYSCALL_ENTRY( 0x0000, NtAccessCheck, 64 ) \
